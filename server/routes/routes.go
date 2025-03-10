@@ -3,10 +3,9 @@ package routes
 import (
 	"github.com/RossLaing8417/react-go-mvc/server/controllers"
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
-func Setup(api fiber.Router, db *gorm.DB) {
+func Setup(api fiber.Router) {
 	// Business Routes
 	api.Post("/business", controllers.CreateBusiness)
 	api.Get("/business", controllers.GetBusinesses)
