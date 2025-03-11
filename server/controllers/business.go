@@ -89,17 +89,17 @@ func (controller *businessController) CreateBusiness(c *fiber.Ctx) error {
 }
 
 func (controller *businessController) GetBusinesses(c *fiber.Ctx) error {
-	businesses, err := models.FindBusinesses(controller.Db)
+	records, err := models.FindBusinesses(controller.Db)
 	if err != nil {
 		return respondError(c, http.StatusInternalServerError, err, "Failed to retrieve records")
 	}
 
-	// dtos := make([]Business, len(records))
-	// for i, record := range records {
-	// 	dtos[i] = record.ToDTO()
-	// }
+	dtos := make([]businessDTO, len(records))
+	for i, record := range records {
+		dtos[i] = businessFromModel(&record)
+	}
 
-	return c.Status(http.StatusOK).JSON(businesses)
+	return c.Status(http.StatusOK).JSON(dtos)
 }
 
 func (controller *businessController) GetBusiness(c *fiber.Ctx) error {
