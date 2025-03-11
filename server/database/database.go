@@ -6,9 +6,11 @@ import (
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type DBOptions struct {
+	LogLevel      logger.LogLevel
 	DriverOptions DriverOptions
 }
 
@@ -27,25 +29,43 @@ type PostgreSQLOptions struct {
 // Unmarshal JSON into the correct driver ensuring at least one and only one driver is provided
 func (opts *DBOptions) UnmarshalJSON(data []byte) error {
 	type jsonOptions struct {
+		LogLevel   *string            `json:"log_level"`
 		SQLite     *SQLiteOptions     `json:"sqlite"`
 		PostgreSQL *PostgreSQLOptions `json:"postgresql"`
 	}
 
-	json_opts := jsonOptions{}
-	err := json.Unmarshal(data, &json_opts)
+	jsonOpts := jsonOptions{}
+	err := json.Unmarshal(data, &jsonOpts)
 	if err != nil {
 		return err
 	}
 
-	if json_opts.SQLite != nil && json_opts.PostgreSQL != nil {
+	if jsonOpts.SQLite != nil && jsonOpts.PostgreSQL != nil {
 		return fmt.Errorf("More than one database driver provided")
-	} else if json_opts.SQLite != nil {
-		opts.DriverOptions = json_opts.SQLite
-	} else if json_opts.PostgreSQL != nil {
-		opts.DriverOptions = json_opts.PostgreSQL
+	} else if jsonOpts.SQLite != nil {
+		opts.DriverOptions = jsonOpts.SQLite
+	} else if jsonOpts.PostgreSQL != nil {
+		opts.DriverOptions = jsonOpts.PostgreSQL
 	} else {
 		fmt.Println("No config")
 		return fmt.Errorf("Missing database driver option")
+	}
+
+	if jsonOpts.LogLevel != nil {
+		switch *jsonOpts.LogLevel {
+		case "Silent":
+			opts.LogLevel = logger.Silent
+		case "Error":
+			opts.LogLevel = logger.Error
+		case "Warn":
+			opts.LogLevel = logger.Warn
+		case "Info":
+			opts.LogLevel = logger.Info
+		default:
+			return fmt.Errorf("Invalid log level: %s", *jsonOpts.LogLevel)
+		}
+	} else {
+		opts.LogLevel = logger.Error
 	}
 
 	return nil
@@ -60,7 +80,9 @@ func (opts *PostgreSQLOptions) Connection() gorm.Dialector {
 }
 
 func Connect(opts DBOptions) (*gorm.DB, error) {
-	db, err := gorm.Open(opts.DriverOptions.Connection())
+	db, err := gorm.Open(opts.DriverOptions.Connection(), &gorm.Config{
+		Logger: logger.Default.LogMode(opts.LogLevel),
+	})
 	if err != nil {
 		return nil, err
 	}

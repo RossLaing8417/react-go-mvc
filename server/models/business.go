@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -9,8 +10,8 @@ import (
 
 type Businesses []Business
 type Business struct {
-	ID                 uint64    `gorm:"primaryKey;unique;autoIncrement"`
-	CreatedDateTime    time.Time `gorm:"not null;autoCreateTime"`
+	ID                 uint64    `gorm:"primaryKey;unique;autoIncrement;<-create"`
+	CreatedDateTime    time.Time `gorm:"not null;autoCreateTime;<-create"`
 	UpdatedDateTime    time.Time `gorm:"not null;autoUpdateTime"`
 	Name               string    `gorm:"not null;uniqueIndex:ak1_business"`
 	VATNumber          uint64    `gorm:"index:idx1_business"`
@@ -18,21 +19,30 @@ type Business struct {
 	Addresses          Addresses `gorm:"foreignKey:BusinessID"`
 }
 
-func FindBusiness(db *gorm.DB, id uint64) (Business, error) {
+func (record *Business) sanitize() {
+	record.Name = strings.TrimSpace(record.Name)
+	record.RegistrationNumber = strings.TrimSpace(record.RegistrationNumber)
+}
+
+func (record *Business) validate() error {
+	if record.Name == "" {
+		return fmt.Errorf("Name is required")
+	}
+	return nil
+}
+
+func GetBusinessById(db *gorm.DB, id uint64) (Business, error) {
 	record := Business{}
 
-	result := db.Find(&record, id)
+	result := db.First(&record, id)
 	if result.Error != nil {
 		return Business{}, result.Error
-	}
-	if result.RowsAffected == 0 {
-		return Business{}, fmt.Errorf("Could not find business with the id: %d", id)
 	}
 
 	return record, nil
 }
 
-func FindBusinesses(db *gorm.DB) (Businesses, error) {
+func GetBusinesses(db *gorm.DB) (Businesses, error) {
 	records := Businesses{}
 
 	result := db.Find(&records)
@@ -44,6 +54,44 @@ func FindBusinesses(db *gorm.DB) (Businesses, error) {
 }
 
 func (record *Business) Create(db *gorm.DB) error {
+	record.sanitize()
+	err := record.validate()
+	if err != nil {
+		return err
+	}
+
 	result := db.Create(&record)
+
+	return result.Error
+}
+
+func (record *Business) Update(db *gorm.DB) error {
+	update, err := GetBusinessById(db, record.ID)
+	if err != nil {
+		return err
+	}
+
+	update.Name = record.Name
+	update.VATNumber = record.VATNumber
+	update.RegistrationNumber = record.RegistrationNumber
+
+	update.sanitize()
+	err = update.validate()
+	if err != nil {
+		return err
+	}
+
+	result := db.Where("id = ?", record.ID).Updates(&update)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	*record = update
+
+	return nil
+}
+
+func (record *Business) Delete(db *gorm.DB) error {
+	result := db.Where("id = ?", record.ID).Delete(record)
 	return result.Error
 }

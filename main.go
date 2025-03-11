@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/RossLaing8417/react-go-mvc/server/database"
-	"github.com/RossLaing8417/react-go-mvc/server/models"
+	"github.com/RossLaing8417/react-go-mvc/server/database/migrations"
 	"github.com/RossLaing8417/react-go-mvc/server/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -16,11 +16,11 @@ import (
 )
 
 func main() {
-	config_file := *flag.String("config-file", "config.json", "Configuration file")
-	auto_migrate := *flag.Bool("auto-migrate", false, "Run auto migration")
+	configFile := flag.String("config-file", "config.json", "Configuration file")
+	autoMigrate := flag.Bool("migrate-db", false, "Run database migration")
 	flag.Parse()
 
-	opts, err := ReadConfig(config_file)
+	opts, err := ReadConfig(*configFile)
 	if err != nil {
 		log.Fatalf("Error reading config file: %v\n", err)
 	}
@@ -30,12 +30,9 @@ func main() {
 		log.Fatalf("Error connecting to database: %v\n", err)
 	}
 
-	if auto_migrate {
+	if *autoMigrate {
 		log.Println("Running auto migration...")
-		err := db.AutoMigrate(
-			&models.Business{},
-			&models.Address{},
-		)
+		err := migrations.AutoMigrate(db)
 		if err != nil {
 			log.Fatalln(err)
 		}
