@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/RossLaing8417/react-go-mvc/server/database"
+	"gorm.io/gorm"
 )
 
 type Businesses []Business
@@ -18,94 +18,32 @@ type Business struct {
 	Addresses          Addresses `gorm:"foreignKey:BusinessID"`
 }
 
-type CreateBusinessParams struct {
-	Name               string `json:"name"`
-	VATNumber          uint64 `json:"vat_number"`
-	RegistrationNumber string `json:"registration_number"`
-}
+func FindBusiness(db *gorm.DB, id uint64) (Business, error) {
+	record := Business{}
 
-type UpdateBusinessParams struct {
-	ID                 uint64 `json:"-"`
-	Name               string `json:"name"`
-	VATNumber          uint64 `json:"vat_number"`
-	RegistrationNumber string `json:"registration_number"`
-}
-
-type BusinessDTO struct {
-	ID                 uint64       `json:"id"`
-	CreatedDateTime    time.Time    `json:"created_datetime"`
-	UpdateDateTime     time.Time    `json:"updated_datetime"`
-	Name               string       `json:"name"`
-	VATNumber          uint64       `json:"vat_number"`
-	RegistrationNumber string       `json:"registration_number"`
-	Addresses          []AddressDTO `json:"addresses"`
-}
-
-func CreateBusiness(params CreateBusinessParams) (BusinessDTO, error) {
-	record := Business{
-		Name:               params.Name,
-		VATNumber:          params.VATNumber,
-		RegistrationNumber: params.RegistrationNumber,
-	}
-
-	result := database.Instance().Create(&record)
+	result := db.Find(&record, id)
 	if result.Error != nil {
-		return BusinessDTO{}, result.Error
+		return Business{}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return Business{}, fmt.Errorf("Could not find business with the id: %d", id)
 	}
 
-	return BusinessDTO{
-		ID:                 record.ID,
-		CreatedDateTime:    record.CreatedDateTime,
-		UpdateDateTime:     record.UpdatedDateTime,
-		Name:               record.Name,
-		VATNumber:          record.VATNumber,
-		RegistrationNumber: record.RegistrationNumber,
-		Addresses:          []AddressDTO{},
-	}, nil
+	return record, nil
 }
 
-func GetBusinesses() ([]BusinessDTO, error) {
+func FindBusinesses(db *gorm.DB) (Businesses, error) {
 	records := Businesses{}
 
-	result := database.Instance().Find(&records)
+	result := db.Find(&records)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	dtos := make([]BusinessDTO, len(records))
-	for i, record := range records {
-		dtos[i] = record.ToDTO()
-	}
-
-	return dtos, nil
+	return records, nil
 }
 
-func GetBusiness(id uint64) (BusinessDTO, error) {
-	record := Business{}
-
-	result := database.Instance().Find(&record, id)
-	if result.Error != nil {
-		return BusinessDTO{}, result.Error
-	}
-	if result.RowsAffected == 0 {
-		return BusinessDTO{}, fmt.Errorf("Could not find business with the id: %d", id)
-	}
-
-	return record.ToDTO(), nil
-}
-
-func (record *Business) ToDTO() BusinessDTO {
-	addresses := make([]AddressDTO, len(record.Addresses))
-	for i, address := range record.Addresses {
-		addresses[i] = address.ToDTO()
-	}
-	return BusinessDTO{
-		ID:                 record.ID,
-		CreatedDateTime:    record.CreatedDateTime,
-		UpdateDateTime:     record.UpdatedDateTime,
-		Name:               record.Name,
-		VATNumber:          record.VATNumber,
-		RegistrationNumber: record.RegistrationNumber,
-		Addresses:          addresses,
-	}
+func (record *Business) Create(db *gorm.DB) error {
+	result := db.Create(&record)
+	return result.Error
 }

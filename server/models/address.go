@@ -15,34 +15,6 @@ type Address struct {
 	PostCode        string    `gorm:"not null;index:idx2_address,priority:1"`
 }
 
-type CreateAddressParams struct {
-	BusinessID   uint64 `json:"business_id"`
-	StreetNumber string `json:"street_number"`
-	Street       string `json:"street"`
-	Town         string `json:"town"`
-	PostCode     string `json:"post_code"`
-}
-
-type UpdateAddressParams struct {
-	ID           uint64 `json:"-"`
-	BusinessID   uint64 `json:"business_id"`
-	StreetNumber string `json:"street_number"`
-	Street       string `json:"street"`
-	Town         string `json:"town"`
-	PostCode     string `json:"post_code"`
-}
-
-type AddressDTO struct {
-	ID              uint64    `json:"-"`
-	CreatedDateTime time.Time `json:"created_datetime"`
-	UpdateDateTime  time.Time `json:"updated_datetime"`
-	BusinessID      uint64    `json:"business_id"`
-	StreetNumber    string    `json:"street_number"`
-	Street          string    `json:"street"`
-	Town            string    `json:"town"`
-	PostCode        string    `json:"post_code"`
-}
-
 func (record *Address) ToDTO() AddressDTO {
 	return AddressDTO{
 		ID:              record.ID,

@@ -3,53 +3,123 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/RossLaing8417/react-go-mvc/server/models"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
-func CreateBusiness(c *fiber.Ctx) error {
-	params := models.CreateBusinessParams{}
+type businessController struct {
+	Db *gorm.DB
+}
+
+func NewBusinessController(db *gorm.DB) *businessController {
+	return &businessController{
+		Db: db,
+	}
+}
+
+type createBusinessParams struct {
+	Name               string `json:"name"`
+	VATNumber          uint64 `json:"vat_number"`
+	RegistrationNumber string `json:"registration_number"`
+}
+
+type updateBusinessParams struct {
+	ID                 uint64 `json:"-"`
+	Name               string `json:"name"`
+	VATNumber          uint64 `json:"vat_number"`
+	RegistrationNumber string `json:"registration_number"`
+}
+
+type businessDTO struct {
+	ID                 uint64    `json:"id"`
+	CreatedDateTime    time.Time `json:"created_datetime"`
+	UpdateDateTime     time.Time `json:"updated_datetime"`
+	Name               string    `json:"name"`
+	VATNumber          uint64    `json:"vat_number"`
+	RegistrationNumber string    `json:"registration_number"`
+	Addresses          []address `json:"addresses"`
+}
+
+func businessFromModel(record *models.Business) businessDTO {
+	addresses := make([]address, len(record.Addresses))
+	for i, address := range record.Addresses {
+		addresses[i] = addressFromModel(&address)
+	}
+	return businessDTO{
+		ID:                 record.ID,
+		CreatedDateTime:    record.CreatedDateTime,
+		UpdateDateTime:     record.UpdatedDateTime,
+		Name:               record.Name,
+		VATNumber:          record.VATNumber,
+		RegistrationNumber: record.RegistrationNumber,
+		Addresses:          addresses,
+	}
+}
+
+func (controller *businessController) CreateBusiness(c *fiber.Ctx) error {
+	params := createBusinessParams{}
 
 	if err := c.BodyParser(&params); err != nil {
 		return respondError(c, http.StatusBadRequest, err, "Failed to parse body")
 	}
 
-	business, err := models.CreateBusiness(params)
+	record := models.Business{
+		Name:               params.Name,
+		VATNumber:          params.VATNumber,
+		RegistrationNumber: params.RegistrationNumber,
+	}
+
+	err := record.Create(controller.Db)
 	if err != nil {
 		return respondError(c, http.StatusInternalServerError, err, "Failed to create record")
 	}
 
-	return c.Status(http.StatusCreated).JSON(business)
+	return c.Status(http.StatusCreated).JSON(businessDTO{
+		ID:                 record.ID,
+		CreatedDateTime:    record.CreatedDateTime,
+		UpdateDateTime:     record.UpdatedDateTime,
+		Name:               record.Name,
+		VATNumber:          record.VATNumber,
+		RegistrationNumber: record.RegistrationNumber,
+		Addresses:          []address{},
+	})
 }
 
-func GetBusinesses(c *fiber.Ctx) error {
-	businesses, err := models.GetBusinesses()
+func (controller *businessController) GetBusinesses(c *fiber.Ctx) error {
+	businesses, err := models.FindBusinesses(controller.Db)
 	if err != nil {
 		return respondError(c, http.StatusInternalServerError, err, "Failed to retrieve records")
 	}
 
+	// dtos := make([]Business, len(records))
+	// for i, record := range records {
+	// 	dtos[i] = record.ToDTO()
+	// }
+
 	return c.Status(http.StatusOK).JSON(businesses)
 }
 
-func GetBusiness(c *fiber.Ctx) error {
+func (controller *businessController) GetBusiness(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		return respondError(c, http.StatusBadRequest, err, "Failed to parse parameter")
 	}
 
-	business, err := models.GetBusiness(id)
+	record, err := models.FindBusiness(controller.Db, id)
 	if err != nil {
 		return respondError(c, http.StatusNotFound, err, "Failed to retrieve record")
 	}
 
-	return c.Status(http.StatusOK).JSON(business)
+	return c.Status(http.StatusOK).JSON(record)
 }
 
-func UpdateBusiness(c *fiber.Ctx) error {
+func (controller *businessController) UpdateBusiness(c *fiber.Ctx) error {
 	return nil
 }
 
-func DeleteBusiness(c *fiber.Ctx) error {
+func (controller *businessController) DeleteBusiness(c *fiber.Ctx) error {
 	return nil
 }
