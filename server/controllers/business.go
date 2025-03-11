@@ -79,14 +79,14 @@ func businessFromModel(record *models.Business) businessDTO {
 func (controller *businessController) CreateBusiness(c *fiber.Ctx) error {
 	params := createBusinessParams{}
 	if err := c.BodyParser(&params); err != nil {
-		return respondError(c, http.StatusBadRequest, err, "Failed to parse body")
+		return responseError(c, http.StatusBadRequest, err, "Failed to parse request body")
 	}
 
 	record := params.toModel()
 
 	err := record.Create(controller.Db)
 	if err != nil {
-		return respondError(c, http.StatusInternalServerError, err, "Failed to create record")
+		return responseError(c, http.StatusInternalServerError, err, "Failed to create business record")
 	}
 
 	return c.Status(http.StatusCreated).JSON(businessFromModel(&record))
@@ -95,7 +95,7 @@ func (controller *businessController) CreateBusiness(c *fiber.Ctx) error {
 func (controller *businessController) GetBusinesses(c *fiber.Ctx) error {
 	records, err := models.GetBusinesses(controller.Db)
 	if err != nil {
-		return respondError(c, http.StatusInternalServerError, err, "Failed to retrieve records")
+		return responseError(c, http.StatusInternalServerError, err, "Failed to retrieve business records")
 	}
 
 	dtos := make([]businessDTO, len(records))
@@ -109,12 +109,15 @@ func (controller *businessController) GetBusinesses(c *fiber.Ctx) error {
 func (controller *businessController) GetBusiness(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		return respondError(c, http.StatusBadRequest, err, "Failed to parse parameter")
+		return responseError(c, http.StatusBadRequest, err, "Failed to parse request id parameter")
 	}
 
 	record, err := models.GetBusinessById(controller.Db, id)
 	if err != nil {
-		return respondError(c, http.StatusNotFound, err, "Failed to retrieve record")
+		if err == gorm.ErrRecordNotFound {
+			return responseError(c, http.StatusNotFound, err, "Failed to retrieve business record")
+		}
+		return responseError(c, http.StatusInternalServerError, err, "Failed to retrieve business record")
 	}
 
 	return c.Status(http.StatusOK).JSON(businessFromModel(&record))
@@ -123,19 +126,19 @@ func (controller *businessController) GetBusiness(c *fiber.Ctx) error {
 func (controller *businessController) UpdateBusiness(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		return respondError(c, http.StatusBadRequest, err, "Failed to parse parameter")
+		return responseError(c, http.StatusBadRequest, err, "Failed to parse request id parameter")
 	}
 
 	params := updateBusinessParams{}
 	if err := c.BodyParser(&params); err != nil {
-		return respondError(c, http.StatusBadRequest, err, "Failed to parse body")
+		return responseError(c, http.StatusBadRequest, err, "Failed to parse request body")
 	}
 
 	record := params.toModel(id)
 
 	err = record.Update(controller.Db)
 	if err != nil {
-		return respondError(c, http.StatusInternalServerError, err, "Failed to update record")
+		return responseError(c, http.StatusInternalServerError, err, "Failed to update business record")
 	}
 
 	return c.Status(http.StatusOK).JSON(businessFromModel(&record))
@@ -144,17 +147,17 @@ func (controller *businessController) UpdateBusiness(c *fiber.Ctx) error {
 func (controller *businessController) DeleteBusiness(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		return respondError(c, http.StatusBadRequest, err, "Failed to parse parameter")
+		return responseError(c, http.StatusBadRequest, err, "Failed to parse request id parameter")
 	}
 
 	record, err := models.GetBusinessById(controller.Db, id)
 	if err != nil {
-		return respondError(c, http.StatusNotFound, err, "Failed to retrieve record")
+		return responseError(c, http.StatusNotFound, err, "Failed to retrieve business record")
 	}
 
 	err = record.Delete(controller.Db)
 	if err != nil {
-		return respondError(c, http.StatusInternalServerError, err, "Failed to delete record")
+		return responseError(c, http.StatusInternalServerError, err, "Failed to delete business record")
 	}
 
 	return c.SendStatus(http.StatusNoContent)

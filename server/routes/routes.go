@@ -9,6 +9,7 @@ import (
 func Setup(api fiber.Router, db *gorm.DB) {
 
 	businessController := controllers.NewBusinessController(db)
+	addressController := controllers.NewAddressController(db)
 
 	api.Post("/business", businessController.CreateBusiness)
 	api.Get("/business", businessController.GetBusinesses)
@@ -16,9 +17,9 @@ func Setup(api fiber.Router, db *gorm.DB) {
 	api.Put("/business/:id", businessController.UpdateBusiness)
 	api.Delete("/business/:id", businessController.DeleteBusiness)
 
-	// Address Routes
-	// api.Post("/address")
-	// api.Get("/address")
-	// api.Patch("/address/:id")
-	// api.Delete("/address/:id")
+	api.Post("/address", addressController.CreateAddress)
+	api.Get("/address", addressController.GetAddresses)
+	api.Get("/address/:id", addressController.GetAddress)
+	api.Put("/address/:id", addressController.UpdateAddress)
+	api.Delete("/address/:id", addressController.DeleteAddress)
 }

@@ -1,6 +1,12 @@
 package models
 
-import "time"
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Addresses []Address
 type Address struct {
@@ -13,4 +19,99 @@ type Address struct {
 	Street          string    `gorm:"not null"`
 	Town            string    `gorm:"not null;index:idx2_address,priority:2"`
 	PostCode        string    `gorm:"not null;index:idx2_address,priority:1"`
+}
+
+func (record *Address) sanitize() {
+	record.StreetNumber = strings.TrimSpace(record.StreetNumber)
+	record.Street = strings.TrimSpace(record.Street)
+	record.Town = strings.TrimSpace(record.Town)
+	record.PostCode = strings.TrimSpace(record.PostCode)
+}
+
+func (record *Address) validate() error {
+	if record.BusinessID == 0 {
+		return fmt.Errorf("Address must be linked to a business")
+	}
+	if record.Street == "" {
+		return fmt.Errorf("Street is requried")
+	}
+	if record.Town == "" {
+		return fmt.Errorf("Town is requried")
+	}
+	if record.PostCode == "" {
+		return fmt.Errorf("Post code is requried")
+	}
+	return nil
+}
+
+// FIXME: Move the gets to before the create in the models
+func GetAddressById(db *gorm.DB, id uint64) (Address, error) {
+	record := Address{}
+
+	result := db.First(&record, id)
+	if result.Error != nil {
+		return Address{}, result.Error
+	}
+
+	return record, nil
+}
+
+func GetAddresses(db *gorm.DB) (Addresses, error) {
+	records := Addresses{}
+
+	result := db.Find(&records)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return records, nil
+}
+
+func (record *Address) Create(db *gorm.DB) error {
+	record.sanitize()
+
+	// FIXME: Find more if err to inline
+	if err := record.validate(); err != nil {
+		return err
+	}
+
+	result := db.Create(&record)
+
+	return result.Error
+}
+
+func (record *Address) Update(db *gorm.DB) error {
+	update, err := GetAddressById(db, record.ID)
+	if err != nil {
+		return err
+	}
+
+	update.StreetNumber = record.StreetNumber
+	update.Street = record.Street
+	update.Town = record.Town
+	update.PostCode = record.PostCode
+
+	update.sanitize()
+	if err := update.validate(); err != nil {
+		return err
+	}
+
+	result := db.Where("id = ?", record.ID).Updates(&update)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	*record = update
+
+	return nil
+}
+
+func (record *Address) Delete(db *gorm.DB) error {
+	delete, err := GetAddressById(db, record.ID)
+	if err != nil {
+		return err
+	}
+
+	result := db.Where("id = ?", record.ID).Delete(&delete)
+	return result.Error
 }

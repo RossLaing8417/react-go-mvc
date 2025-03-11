@@ -92,6 +92,11 @@ func (record *Business) Update(db *gorm.DB) error {
 }
 
 func (record *Business) Delete(db *gorm.DB) error {
-	result := db.Where("id = ?", record.ID).Delete(record)
+	del, err := GetBusinessById(db, record.ID)
+	if err != nil {
+		return err
+	}
+
+	result := db.Where("id = ?", record.ID).Delete(&del)
 	return result.Error
 }
