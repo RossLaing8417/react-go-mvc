@@ -34,17 +34,17 @@ type updateBusinessParams struct {
 }
 
 type businessDTO struct {
-	ID                 uint64    `json:"id"`
-	CreatedDateTime    time.Time `json:"created_datetime"`
-	UpdateDateTime     time.Time `json:"updated_datetime"`
-	Name               string    `json:"name"`
-	VATNumber          uint64    `json:"vat_number"`
-	RegistrationNumber string    `json:"registration_number"`
-	Addresses          []address `json:"addresses"`
+	ID                 uint64       `json:"id"`
+	CreatedDateTime    time.Time    `json:"created_datetime"`
+	UpdateDateTime     time.Time    `json:"updated_datetime"`
+	Name               string       `json:"name"`
+	VATNumber          uint64       `json:"vat_number"`
+	RegistrationNumber string       `json:"registration_number"`
+	Addresses          []addressDTO `json:"addresses"`
 }
 
 func businessFromModel(record *models.Business) businessDTO {
-	addresses := make([]address, len(record.Addresses))
+	addresses := make([]addressDTO, len(record.Addresses))
 	for i, address := range record.Addresses {
 		addresses[i] = addressFromModel(&address)
 	}
@@ -84,7 +84,7 @@ func (controller *businessController) CreateBusiness(c *fiber.Ctx) error {
 		Name:               record.Name,
 		VATNumber:          record.VATNumber,
 		RegistrationNumber: record.RegistrationNumber,
-		Addresses:          []address{},
+		Addresses:          []addressDTO{},
 	})
 }
 

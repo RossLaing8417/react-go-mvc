@@ -14,16 +14,3 @@ type Address struct {
 	Town            string    `gorm:"not null;index:idx2_address,priority:2"`
 	PostCode        string    `gorm:"not null;index:idx2_address,priority:1"`
 }
-
-func (record *Address) ToDTO() AddressDTO {
-	return AddressDTO{
-		ID:              record.ID,
-		CreatedDateTime: record.CreatedDateTime,
-		UpdateDateTime:  record.UpdatedDateTime,
-		BusinessID:      record.BusinessID,
-		StreetNumber:    record.StreetNumber,
-		Street:          record.Street,
-		Town:            record.Town,
-		PostCode:        record.PostCode,
-	}
-}
