@@ -19,7 +19,7 @@ const EditBusinessForm = ({ business, onSave, onCancel }) => {
     const updatedBusiness = {
       ...business,
       name,
-      vat_number: vatNumber,
+      vat_number: Number(vatNumber),
       registration_number: registrationNumber,
     };
 

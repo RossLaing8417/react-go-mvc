@@ -20,7 +20,6 @@ import (
 
 func main() {
 	configFile := flag.String("config-file", "config.json", "Configuration file")
-	autoMigrate := flag.Bool("migrate-db", false, "Run database migration")
 	flag.Parse()
 
 	opts, err := ReadConfig(*configFile)
@@ -33,18 +32,13 @@ func main() {
 		log.Fatalf("Error connecting to database: %v\n", err)
 	}
 
-	if *autoMigrate {
-		log.Println("Running auto migration...")
-		err := migrations.AutoMigrate(db)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		log.Println("Auto migration complete, now exiting...")
-		return
+	log.Println("Running auto migration...")
+	if err := migrations.AutoMigrate(db); err != nil {
+		log.Fatalln(err)
 	}
+	log.Println("Auto migration complete...")
 
 	app := fiber.New()
-	// app.Use(middleware.ModelValidations())
 	app.Use(logger.New(logger.Config{
 		Format: logger.ConfigDefault.Format + " \n>>>>>\n${body}\n-----\n${resBody}\n<<<<<\n",
 	}))

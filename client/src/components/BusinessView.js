@@ -5,14 +5,15 @@ import AddressGrid from './AddressGrid';
 import EditAddressForm from './EditAddressForm';
 import EditBusinessForm from './EditBusinessForm';
 
-const BusinessView = ({ business, onBack }) => {
+const BusinessView = ({ business, onBack, onUpdate }) => {
+  const [localBusiness, setLocalBusiness] = useState(business);
   const [addresses, setAddresses] = useState([]);
   const [editingAddress, setEditingAddress] = useState(null);
   const [editingBusiness, setEditingBusiness] = useState(false); // State to track if the business is being edited
 
   useEffect(() => {
-    fetchAddresses(business.id).then(data => setAddresses(data));
-  }, [business.id]);
+    fetchAddresses(localBusiness.id).then(data => setAddresses(data));
+  }, [localBusiness.id]);
 
   const handleAddAddress = (newAddress) => {
     setAddresses([...addresses, newAddress]);
@@ -37,10 +38,10 @@ const BusinessView = ({ business, onBack }) => {
     setEditingBusiness(true); // Switch to editing business mode
   };
 
-  const handleSaveBusiness = (_) => {
-    // Update the business in the parent component (App.js) or local state
+  const handleSaveBusiness = (updatedBusiness) => {
+    setLocalBusiness(updatedBusiness)
+    onUpdate(updatedBusiness);
     setEditingBusiness(false); // Switch back to viewing mode
-    // Optionally update the business list (e.g., if it's stored in a parent component state)
   };
 
   const handleCancelBusinessEdit = () => {
@@ -53,15 +54,15 @@ const BusinessView = ({ business, onBack }) => {
       <h2>Business Details</h2>
       {editingBusiness ? (
         <EditBusinessForm
-          business={business}
+          business={localBusiness}
           onSave={handleSaveBusiness}
           onCancel={handleCancelBusinessEdit}
         />
       ) : (
         <>
-          <p>Name: {business.name}</p>
-          <p>VAT: {business.vat_number}</p>
-          <p>Registration Number: {business.registration_number}</p>
+          <p>Name: {localBusiness.name}</p>
+          <p>VAT: {localBusiness.vat_number}</p>
+          <p>Registration Number: {localBusiness.registration_number}</p>
           <button onClick={handleEditBusiness}>Edit Business</button>
         </>
       )}
@@ -74,7 +75,7 @@ const BusinessView = ({ business, onBack }) => {
         />
       ) : (
         <div>
-          <AddAddressForm businessId={business.id} onAdd={handleAddAddress} />
+          <AddAddressForm businessId={localBusiness.id} onAdd={handleAddAddress} />
           <AddressGrid
             addresses={addresses}
             onEdit={handleEditAddress}

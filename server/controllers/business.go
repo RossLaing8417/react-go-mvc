@@ -84,8 +84,7 @@ func (controller *businessController) CreateBusiness(c *fiber.Ctx) error {
 
 	record := params.toModel()
 
-	err := record.Create(controller.Db)
-	if err != nil {
+	if err := record.Create(controller.Db); err != nil {
 		return responseError(c, http.StatusInternalServerError, err, "Failed to create business record")
 	}
 
@@ -115,7 +114,7 @@ func (controller *businessController) GetBusiness(c *fiber.Ctx) error {
 	record, err := models.GetBusinessById(controller.Db, id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responseError(c, http.StatusNotFound, err, "Failed to retrieve business record")
+			return responseError(c, http.StatusNotFound, err, "Failed to find business record")
 		}
 		return responseError(c, http.StatusInternalServerError, err, "Failed to retrieve business record")
 	}
@@ -138,6 +137,9 @@ func (controller *businessController) UpdateBusiness(c *fiber.Ctx) error {
 
 	err = record.Update(controller.Db)
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responseError(c, http.StatusNotFound, err, "Failed to find business record")
+		}
 		return responseError(c, http.StatusInternalServerError, err, "Failed to update business record")
 	}
 
@@ -150,13 +152,14 @@ func (controller *businessController) DeleteBusiness(c *fiber.Ctx) error {
 		return responseError(c, http.StatusBadRequest, err, "Failed to parse request id parameter")
 	}
 
-	record, err := models.GetBusinessById(controller.Db, id)
-	if err != nil {
-		return responseError(c, http.StatusNotFound, err, "Failed to retrieve business record")
+	record := models.Business{
+		ID: id,
 	}
 
-	err = record.Delete(controller.Db)
-	if err != nil {
+	if err := record.Delete(controller.Db); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responseError(c, http.StatusNotFound, err, "Failed to find business record")
+		}
 		return responseError(c, http.StatusInternalServerError, err, "Failed to delete business record")
 	}
 

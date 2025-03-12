@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -53,7 +54,7 @@ func (controller *addressController) GetAddress(c *fiber.Ctx) error {
 	record, err := models.GetAddressById(controller.Db, id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responseError(c, http.StatusNotFound, err, "Failed to retrieve address record")
+			return responseError(c, http.StatusNotFound, err, "Failed to find address record")
 		}
 		return responseError(c, http.StatusInternalServerError, err, "Failed to retrieve address record")
 	}
@@ -65,6 +66,10 @@ func (controller *addressController) GetAddresses(c *fiber.Ctx) error {
 	businessId, err := strconv.ParseUint(c.Query("business_id", "0"), 10, 64)
 	if err != nil {
 		return responseError(c, http.StatusBadRequest, err, "Failed to parse request query parameter")
+	}
+
+	if businessId == 0 {
+		return responseError(c, http.StatusBadRequest, fmt.Errorf("business_id query parameter is required"), "Failed to parse request query parameter")
 	}
 
 	records, err := models.GetAddressesForBusiness(controller.Db, businessId)
@@ -106,8 +111,7 @@ func (controller *addressController) CreateAddress(c *fiber.Ctx) error {
 
 	record := params.toModel()
 
-	err := record.Create(controller.Db)
-	if err != nil {
+	if err := record.Create(controller.Db); err != nil {
 		return responseError(c, http.StatusInternalServerError, err, "Failed to create address record")
 	}
 
@@ -137,7 +141,6 @@ func (controller *addressController) UpdateAddress(c *fiber.Ctx) error {
 		return responseError(c, http.StatusBadRequest, err, "Failed to parse request id parameter")
 	}
 
-	// FIXME: Update all business and address for inline err if
 	params := updateAddressParams{}
 	if err := c.BodyParser(&params); err != nil {
 		return responseError(c, http.StatusBadRequest, err, "Failed to parse request body")
@@ -146,7 +149,9 @@ func (controller *addressController) UpdateAddress(c *fiber.Ctx) error {
 	record := params.toModel(id)
 
 	if err := record.Update(controller.Db); err != nil {
-		// FIXME: check err not found
+		if err == gorm.ErrRecordNotFound {
+			return responseError(c, http.StatusNotFound, err, "Failed to find address record")
+		}
 		return responseError(c, http.StatusBadRequest, err, "Failed to update address record")
 	}
 
@@ -163,8 +168,10 @@ func (controller *addressController) DeleteAddress(c *fiber.Ctx) error {
 		ID: id,
 	}
 
-	err = record.Delete(controller.Db)
-	if err != nil {
+	if err := record.Delete(controller.Db); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responseError(c, http.StatusNotFound, err, "Failed to find address record")
+		}
 		return responseError(c, http.StatusInternalServerError, err, "Failed to delete address record")
 	}
 

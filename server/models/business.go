@@ -73,7 +73,7 @@ func (record *Business) Create(db *gorm.DB) error {
 	}
 
 	if record.RegistrationNumber != "" {
-		result := db.Where("registration_number = ?", record.VATNumber).Find(&Business{})
+		result := db.Where("registration_number = '?'", record.VATNumber).Find(&Business{})
 		if result.RowsAffected != 0 {
 			return fmt.Errorf("Business already exists with the registration number '%v'", record.VATNumber)
 		}
@@ -107,7 +107,7 @@ func (record *Business) Update(db *gorm.DB) error {
 	}
 
 	if record.RegistrationNumber != "" {
-		result := db.Where("id != ? AND registration_number = ?", record.ID, record.VATNumber).Find(&Business{})
+		result := db.Where("id != ? AND registration_number = '?'", record.ID, record.VATNumber).Find(&Business{})
 		if result.RowsAffected != 0 {
 			return fmt.Errorf("Business already exists with the registration number '%v'", record.VATNumber)
 		}

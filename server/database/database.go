@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/glebarez/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -23,7 +24,11 @@ type SQLiteOptions struct {
 }
 
 type PostgreSQLOptions struct {
-	Name string `json:"name"`
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	DbName   string `json:"db_name"`
 }
 
 // Unmarshal JSON into the correct driver ensuring at least one and only one driver is provided
@@ -76,7 +81,14 @@ func (opts *SQLiteOptions) Connection() gorm.Dialector {
 }
 
 func (opts *PostgreSQLOptions) Connection() gorm.Dialector {
-	return sqlite.Open(opts.Name)
+	return postgres.Open(fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s",
+		opts.Host,
+		opts.User,
+		opts.Password,
+		opts.DbName,
+		opts.Port,
+	))
 }
 
 func Connect(opts DBOptions) (*gorm.DB, error) {
