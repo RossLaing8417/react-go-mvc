@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+
+	flog "github.com/gofiber/fiber/v2/log"
 )
 
 func main() {
@@ -42,7 +45,9 @@ func main() {
 
 	app := fiber.New()
 	// app.Use(middleware.ModelValidations())
-	app.Use(logger.New(logger.ConfigDefault))
+	app.Use(logger.New(logger.Config{
+		Format: logger.ConfigDefault.Format + " \n>>>>>\n${body}\n-----\n${resBody}\n<<<<<\n",
+	}))
 	app.Use(cors.New(cors.ConfigDefault))
 	app.Use(recover.New(recover.ConfigDefault))
 
@@ -59,6 +64,7 @@ type Options struct {
 	Host      string             `json:"host"`
 	Port      string             `json:"port"`
 	ApiPrefix string             `json:"api_prefix"`
+	LogLevel  string             `json:"log_level"`
 	DBOptions database.DBOptions `json:"database"`
 }
 
@@ -79,6 +85,26 @@ func ReadConfig(file_name string) (Options, error) {
 	err = decoder.Decode(&opts)
 	if err != nil {
 		return Options{}, err
+	}
+
+	switch opts.LogLevel {
+	case "Trace":
+		flog.SetLevel(flog.LevelTrace)
+	case "Debug":
+		flog.SetLevel(flog.LevelDebug)
+	case "Info":
+		flog.SetLevel(flog.LevelInfo)
+	case "Warn":
+		flog.SetLevel(flog.LevelWarn)
+	case "Error":
+		flog.SetLevel(flog.LevelError)
+	case "Fatal":
+		flog.SetLevel(flog.LevelFatal)
+	case "Panic":
+		flog.SetLevel(flog.LevelPanic)
+	case "":
+	default:
+		return Options{}, fmt.Errorf("Invalid log level %s", opts.LogLevel)
 	}
 
 	return opts, nil

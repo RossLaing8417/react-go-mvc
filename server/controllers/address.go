@@ -20,41 +20,6 @@ func NewAddressController(db *gorm.DB) *addressController {
 	}
 }
 
-type createAddressParams struct {
-	BusinessID   uint64 `json:"business_id"`
-	StreetNumber string `json:"street_number"`
-	Street       string `json:"street"`
-	Town         string `json:"town"`
-	PostCode     string `json:"post_code"`
-}
-
-func (params *createAddressParams) toModel() models.Address {
-	return models.Address{
-		BusinessID:   params.BusinessID,
-		StreetNumber: params.StreetNumber,
-		Street:       params.Street,
-		Town:         params.Town,
-		PostCode:     params.PostCode,
-	}
-}
-
-type updateAddressParams struct {
-	StreetNumber string `json:"street_number"`
-	Street       string `json:"street"`
-	Town         string `json:"town"`
-	PostCode     string `json:"post_code"`
-}
-
-func (params *updateAddressParams) toModel(id uint64) models.Address {
-	return models.Address{
-		ID:           id,
-		StreetNumber: params.StreetNumber,
-		Street:       params.Street,
-		Town:         params.Town,
-		PostCode:     params.PostCode,
-	}
-}
-
 type addressDTO struct {
 	ID              uint64    `json:"id"`
 	CreatedDateTime time.Time `json:"created_datetime"`
@@ -79,6 +44,60 @@ func addressFromModel(record *models.Address) addressDTO {
 	}
 }
 
+func (controller *addressController) GetAddress(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		return responseError(c, http.StatusBadRequest, err, "Failed to parse request id parameter")
+	}
+
+	record, err := models.GetAddressById(controller.Db, id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responseError(c, http.StatusNotFound, err, "Failed to retrieve address record")
+		}
+		return responseError(c, http.StatusInternalServerError, err, "Failed to retrieve address record")
+	}
+
+	return c.Status(http.StatusOK).JSON(addressFromModel(&record))
+}
+
+func (controller *addressController) GetAddresses(c *fiber.Ctx) error {
+	businessId, err := strconv.ParseUint(c.Query("business_id", "0"), 10, 64)
+	if err != nil {
+		return responseError(c, http.StatusBadRequest, err, "Failed to parse request query parameter")
+	}
+
+	records, err := models.GetAddressesForBusiness(controller.Db, businessId)
+	if err != nil {
+		return responseError(c, http.StatusInternalServerError, err, "Failed to retrieve address records")
+	}
+
+	dtos := make([]addressDTO, len(records))
+	for i, record := range records {
+		dtos[i] = addressFromModel(&record)
+	}
+
+	return c.Status(http.StatusOK).JSON(dtos)
+}
+
+type createAddressParams struct {
+	BusinessID   uint64 `json:"business_id"`
+	StreetNumber string `json:"street_number"`
+	Street       string `json:"street"`
+	Town         string `json:"town"`
+	PostCode     string `json:"post_code"`
+}
+
+func (params *createAddressParams) toModel() models.Address {
+	return models.Address{
+		BusinessID:   params.BusinessID,
+		StreetNumber: params.StreetNumber,
+		Street:       params.Street,
+		Town:         params.Town,
+		PostCode:     params.PostCode,
+	}
+}
+
 func (controller *addressController) CreateAddress(c *fiber.Ctx) error {
 	params := createAddressParams{}
 	if err := c.BodyParser(&params); err != nil {
@@ -95,35 +114,21 @@ func (controller *addressController) CreateAddress(c *fiber.Ctx) error {
 	return c.Status(http.StatusCreated).JSON(addressFromModel(&record))
 }
 
-func (controller *addressController) GetAddresses(c *fiber.Ctx) error {
-	records, err := models.GetAddresses(controller.Db)
-	if err != nil {
-		return responseError(c, http.StatusInternalServerError, err, "Failed to retrieve address records")
-	}
-
-	dtos := make([]addressDTO, len(records))
-	for i, record := range records {
-		dtos[i] = addressFromModel(&record)
-	}
-
-	return c.Status(http.StatusOK).JSON(dtos)
+type updateAddressParams struct {
+	StreetNumber string `json:"street_number"`
+	Street       string `json:"street"`
+	Town         string `json:"town"`
+	PostCode     string `json:"post_code"`
 }
 
-func (controller *addressController) GetAddress(c *fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
-	if err != nil {
-		return responseError(c, http.StatusBadRequest, err, "Failed to parse request id parameter")
+func (params *updateAddressParams) toModel(id uint64) models.Address {
+	return models.Address{
+		ID:           id,
+		StreetNumber: params.StreetNumber,
+		Street:       params.Street,
+		Town:         params.Town,
+		PostCode:     params.PostCode,
 	}
-
-	record, err := models.GetAddressById(controller.Db, id)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return responseError(c, http.StatusNotFound, err, "Failed to retrieve address record")
-		}
-		return responseError(c, http.StatusInternalServerError, err, "Failed to retrieve address record")
-	}
-
-	return c.Status(http.StatusOK).JSON(addressFromModel(&record))
 }
 
 func (controller *addressController) UpdateAddress(c *fiber.Ctx) error {

@@ -38,6 +38,11 @@ func GetBusinessById(db *gorm.DB, id uint64) (Business, error) {
 	if result.Error != nil {
 		return Business{}, result.Error
 	}
+	var err error
+	record.Addresses, err = GetAddressesForBusiness(db, record.ID)
+	if err != nil {
+		return Business{}, err
+	}
 
 	return record, nil
 }
@@ -55,9 +60,23 @@ func GetBusinesses(db *gorm.DB) (Businesses, error) {
 
 func (record *Business) Create(db *gorm.DB) error {
 	record.sanitize()
-	err := record.validate()
-	if err != nil {
+
+	if err := record.validate(); err != nil {
 		return err
+	}
+
+	if record.VATNumber != 0 {
+		result := db.Where("vat_number = ?", record.VATNumber).Find(&Business{})
+		if result.RowsAffected != 0 {
+			return fmt.Errorf("Business already exists with the vat number '%v'", record.VATNumber)
+		}
+	}
+
+	if record.RegistrationNumber != "" {
+		result := db.Where("registration_number = ?", record.VATNumber).Find(&Business{})
+		if result.RowsAffected != 0 {
+			return fmt.Errorf("Business already exists with the registration number '%v'", record.VATNumber)
+		}
 	}
 
 	result := db.Create(&record)
@@ -76,9 +95,22 @@ func (record *Business) Update(db *gorm.DB) error {
 	update.RegistrationNumber = record.RegistrationNumber
 
 	update.sanitize()
-	err = update.validate()
-	if err != nil {
+	if err = update.validate(); err != nil {
 		return err
+	}
+
+	if record.VATNumber != 0 {
+		result := db.Where("id != ? AND vat_number = ?", record.ID, record.VATNumber).Find(&Business{})
+		if result.RowsAffected != 0 {
+			return fmt.Errorf("Business already exists with the vat number '%v'", record.VATNumber)
+		}
+	}
+
+	if record.RegistrationNumber != "" {
+		result := db.Where("id != ? AND registration_number = ?", record.ID, record.VATNumber).Find(&Business{})
+		if result.RowsAffected != 0 {
+			return fmt.Errorf("Business already exists with the registration number '%v'", record.VATNumber)
+		}
 	}
 
 	result := db.Where("id = ?", record.ID).Updates(&update)
@@ -95,6 +127,10 @@ func (record *Business) Delete(db *gorm.DB) error {
 	del, err := GetBusinessById(db, record.ID)
 	if err != nil {
 		return err
+	}
+
+	if len(del.Addresses) != 0 {
+		return fmt.Errorf("Cannot delete businesses while an address still exist")
 	}
 
 	result := db.Where("id = ?", record.ID).Delete(&del)

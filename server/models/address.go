@@ -44,7 +44,6 @@ func (record *Address) validate() error {
 	return nil
 }
 
-// FIXME: Move the gets to before the create in the models
 func GetAddressById(db *gorm.DB, id uint64) (Address, error) {
 	record := Address{}
 
@@ -56,10 +55,10 @@ func GetAddressById(db *gorm.DB, id uint64) (Address, error) {
 	return record, nil
 }
 
-func GetAddresses(db *gorm.DB) (Addresses, error) {
+func GetAddressesForBusiness(db *gorm.DB, businessId uint64) (Addresses, error) {
 	records := Addresses{}
 
-	result := db.Find(&records)
+	result := db.Where("business_id = ?", businessId).Find(&records)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -70,7 +69,6 @@ func GetAddresses(db *gorm.DB) (Addresses, error) {
 func (record *Address) Create(db *gorm.DB) error {
 	record.sanitize()
 
-	// FIXME: Find more if err to inline
 	if err := record.validate(); err != nil {
 		return err
 	}
@@ -107,11 +105,11 @@ func (record *Address) Update(db *gorm.DB) error {
 }
 
 func (record *Address) Delete(db *gorm.DB) error {
-	delete, err := GetAddressById(db, record.ID)
+	del, err := GetAddressById(db, record.ID)
 	if err != nil {
 		return err
 	}
 
-	result := db.Where("id = ?", record.ID).Delete(&delete)
+	result := db.Where("id = ?", record.ID).Delete(&del)
 	return result.Error
 }
