@@ -79,7 +79,6 @@ npm install
 npm start
 ```
 
-Run:
 Navigate to the link in your browser (most likely `http://localhost:3000`)
 
 ## API Endpoints
