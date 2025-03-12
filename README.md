@@ -81,6 +81,13 @@ npm start
 
 Navigate to the link in your browser (most likely `http://localhost:3000`)
 
+Update `src/services/config.js` if needed:
+```js
+export const API_BASE_URL = "http://localhost:8080/api";
+export const BUSINESS_API = "/business";
+export const ADDRESS_API = "/address";
+```
+
 ## API Endpoints
 
 ### Business
